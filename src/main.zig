@@ -27,7 +27,7 @@ pub fn main() !void {
 
     const comment = try inquirer.forString(out, in, "Any comments on your purchase experience?", alloc, "Nope, all good!");
 
-    if (std.mem.eql(u8, comment, "")) {
+    if (!std.mem.eql(u8, comment, "Nope, all good!")) {
         _ = try inquirer.forEnum(out, in, "For leaving a comment, you get a freebie:", alloc, enum { Cake, Fries }, null);
     }
 }
