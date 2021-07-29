@@ -2,10 +2,10 @@ const std = @import("std");
 const ansi = @import("ansi");
 const range = @import("range").range;
 
-pub fn answer(comptime prompt: []const u8, comptime T: type, comptime valfmt: []const u8, value: T) T {
-    std.debug.print(comptime ansi.color.Fg(.Green, "? "), .{});
-    std.debug.print(comptime ansi.color.Bold(prompt ++ " "), .{});
-    std.debug.print(comptime ansi.color.Fg(.Cyan, valfmt ++ "\n"), .{value});
+pub fn answer(out: anytype, comptime prompt: []const u8, comptime T: type, comptime valfmt: []const u8, value: T) !T {
+    try out.print(comptime ansi.color.Fg(.Green, "? "), .{});
+    try out.print(comptime ansi.color.Bold(prompt ++ " "), .{});
+    try out.print(comptime ansi.color.Fg(.Cyan, valfmt ++ "\n"), .{value});
     return value;
 }
 
@@ -14,11 +14,11 @@ const PromptRet = struct {
     value: []const u8,
 };
 
-fn doprompt(in: std.fs.File.Reader, alloc: *std.mem.Allocator, default: ?[]const u8) !PromptRet {
+fn doprompt(out: anytype, in: anytype, alloc: *std.mem.Allocator, default: ?[]const u8) !PromptRet {
     var n: usize = 1;
     var value: []const u8 = undefined;
     while (true) : (n += 1) {
-        std.debug.print(comptime ansi.color.Faint("> "), .{});
+        try out.print(comptime ansi.color.Faint("> "), .{});
         const input = try in.readUntilDelimiterAlloc(alloc, '\n', 100);
 
         if (input.len == 0) if (default) |d| {
@@ -33,32 +33,31 @@ fn doprompt(in: std.fs.File.Reader, alloc: *std.mem.Allocator, default: ?[]const
     return PromptRet{ .n = n, .value = value };
 }
 
-fn clean(n: usize) void {
+fn clean(out: anytype, n: usize) !void {
     for (range(n)) |_| {
-        std.debug.print(comptime ansi.csi.CursorUp(1), .{});
-        std.debug.print(comptime ansi.csi.EraseInLine(0), .{});
+        try out.print(comptime ansi.csi.CursorUp(1), .{});
+        try out.print(comptime ansi.csi.EraseInLine(0), .{});
     }
 }
 
-pub fn forEnum(comptime prompt: []const u8, alloc: *std.mem.Allocator, comptime options: type, default: ?options) !options {
+pub fn forEnum(out: anytype, in: anytype, comptime prompt: []const u8, alloc: *std.mem.Allocator, comptime options: type, default: ?options) !options {
     comptime std.debug.assert(@typeInfo(options) == .Enum);
 
-    std.debug.print(comptime ansi.color.Fg(.Green, "? "), .{});
-    std.debug.print(comptime ansi.color.Bold(prompt ++ " "), .{});
+    try out.print(comptime ansi.color.Fg(.Green, "? "), .{});
+    try out.print(comptime ansi.color.Bold(prompt ++ " "), .{});
 
-    std.debug.print(ansi.style.Faint ++ "(", .{});
+    try out.print(ansi.style.Faint ++ "(", .{});
     inline for (std.meta.fields(options)) |f, i| {
-        if (i != 0) std.debug.print("/", .{});
-        std.debug.print(f.name, .{});
+        if (i != 0) try out.print("/", .{});
+        try out.print(f.name, .{});
     }
-    std.debug.print(")" ++ ansi.style.ResetIntensity ++ " ", .{});
+    try out.print(")" ++ ansi.style.ResetIntensity ++ " ", .{});
 
-    const stdin = std.io.getStdIn().reader();
     var value: options = undefined;
     var i: usize = 0;
     while (true) {
         const def: ?[]const u8 = if (default) |d| @tagName(d) else null;
-        const p = try doprompt(stdin, alloc, def);
+        const p = try doprompt(out, in, alloc, def);
         defer if (!std.mem.eql(u8, p.value, def orelse "")) alloc.free(p.value);
 
         i += p.n;
@@ -67,43 +66,41 @@ pub fn forEnum(comptime prompt: []const u8, alloc: *std.mem.Allocator, comptime 
             break;
         }
     }
-    clean(i);
-    _ = answer(prompt, []const u8, "{s}", @tagName(value));
+    try clean(out, i);
+    _ = try answer(out, prompt, []const u8, "{s}", @tagName(value));
 
     return value;
 }
 
-pub fn forString(comptime prompt: []const u8, alloc: *std.mem.Allocator, default: ?[]const u8) ![]const u8 {
-    std.debug.print(comptime ansi.color.Fg(.Green, "? "), .{});
-    std.debug.print(comptime ansi.color.Bold(prompt ++ " "), .{});
+pub fn forString(out: anytype, in: anytype, comptime prompt: []const u8, alloc: *std.mem.Allocator, default: ?[]const u8) ![]const u8 {
+    try out.print(comptime ansi.color.Fg(.Green, "? "), .{});
+    try out.print(comptime ansi.color.Bold(prompt ++ " "), .{});
 
     if (default != null) {
-        std.debug.print(ansi.style.Faint ++ "(", .{});
-        std.debug.print("{s}", .{default.?});
-        std.debug.print(")" ++ ansi.style.ResetIntensity ++ " ", .{});
+        try out.print(ansi.style.Faint ++ "(", .{});
+        try out.print("{s}", .{default.?});
+        try out.print(")" ++ ansi.style.ResetIntensity ++ " ", .{});
     }
 
-    const stdin = std.io.getStdIn().reader();
-    const p = try doprompt(stdin, alloc, default);
-    clean(p.n);
-    return answer(prompt, []const u8, "{s}", p.value);
+    const p = try doprompt(out, in, alloc, default);
+    try clean(out, p.n);
+    return try answer(out, prompt, []const u8, "{s}", p.value);
 }
 
-pub fn forConfirm(comptime prompt: []const u8, alloc: *std.mem.Allocator) !bool {
-    return (try forEnum(prompt, alloc, enum { y, n }, .y)) == .y;
+pub fn forConfirm(out: anytype, in: anytype, comptime prompt: []const u8, alloc: *std.mem.Allocator) !bool {
+    return (try forEnum(out, in, prompt, alloc, enum { y, n }, .y)) == .y;
 }
 
 // pub fn forNumber(comptime prompt: []const u8, alloc: *std.mem.Allocator, comptime T: type, default: ?T) !T {
-//     std.debug.print(comptime ansi.color.Fg(.Green, "? "), .{});
-//     std.debug.print(comptime ansi.color.Bold(prompt ++ " "), .{});
+//     try out.print(comptime ansi.color.Fg(.Green, "? "), .{});
+//     try out.print(comptime ansi.color.Bold(prompt ++ " "), .{});
 
 //     if (default != null) {
-//         std.debug.print(ansi.style.Faint ++ "(", .{});
-//         std.debug.print("{d}", .{default.?});
-//         std.debug.print(")" ++ ansi.style.ResetIntensity ++ " ", .{});
+//         try out.print(ansi.style.Faint ++ "(", .{});
+//         try out.print("{d}", .{default.?});
+//         try out.print(")" ++ ansi.style.ResetIntensity ++ " ", .{});
 //     }
 
-//     const stdin = std.io.getStdIn().reader();
 //     var value: T = undefined;
 //     var i: usize = 0;
 //     while (true) {
