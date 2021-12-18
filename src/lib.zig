@@ -14,7 +14,7 @@ const PromptRet = struct {
     value: []const u8,
 };
 
-fn doprompt(out: anytype, in: anytype, alloc: *std.mem.Allocator, default: ?[]const u8) !PromptRet {
+fn doprompt(out: anytype, in: anytype, alloc: std.mem.Allocator, default: ?[]const u8) !PromptRet {
     var n: usize = 1;
     var value: []const u8 = undefined;
     while (true) : (n += 1) {
@@ -41,7 +41,7 @@ fn clean(out: anytype, n: usize) !void {
     }
 }
 
-pub fn forEnum(out: anytype, in: anytype, comptime prompt: []const u8, alloc: *std.mem.Allocator, comptime options: type, default: ?options) !options {
+pub fn forEnum(out: anytype, in: anytype, comptime prompt: []const u8, alloc: std.mem.Allocator, comptime options: type, default: ?options) !options {
     comptime std.debug.assert(@typeInfo(options) == .Enum);
     const def: ?[]const u8 = if (default) |d| @tagName(d) else null;
 
@@ -77,7 +77,7 @@ pub fn forEnum(out: anytype, in: anytype, comptime prompt: []const u8, alloc: *s
     return value;
 }
 
-pub fn forString(out: anytype, in: anytype, comptime prompt: []const u8, alloc: *std.mem.Allocator, default: ?[]const u8) ![]const u8 {
+pub fn forString(out: anytype, in: anytype, comptime prompt: []const u8, alloc: std.mem.Allocator, default: ?[]const u8) ![]const u8 {
     try out.print(comptime ansi.color.Fg(.Green, "? "), .{});
     try out.print(comptime ansi.color.Bold(prompt ++ " "), .{});
 
@@ -92,7 +92,7 @@ pub fn forString(out: anytype, in: anytype, comptime prompt: []const u8, alloc: 
     return try answer(out, prompt, []const u8, "{s}", p.value);
 }
 
-pub fn forConfirm(out: anytype, in: anytype, comptime prompt: []const u8, alloc: *std.mem.Allocator) !bool {
+pub fn forConfirm(out: anytype, in: anytype, comptime prompt: []const u8, alloc: std.mem.Allocator) !bool {
     return (try forEnum(out, in, prompt, alloc, enum { y, n }, .y)) == .y;
 }
 
