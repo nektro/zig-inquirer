@@ -19,7 +19,7 @@ fn doprompt(out: anytype, in: anytype, alloc: std.mem.Allocator, default: ?[]con
     var value: []const u8 = undefined;
     while (true) : (n += 1) {
         try out.print(comptime ansi.color.Faint("> "), .{});
-        var input: []const u8 = try in.readUntilDelimiterAlloc(alloc, '\n', 100);
+        var input: []const u8 = try in.readUntilDelimiterAlloc(alloc, '\n', 1024);
         input = std.mem.trimRight(u8, input, "\r\n");
 
         if (input.len == 0) if (default) |d| {
