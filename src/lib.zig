@@ -49,7 +49,7 @@ pub fn forEnum(out: anytype, in: anytype, comptime prompt: []const u8, alloc: st
     try out.print(comptime ansi.color.Bold(prompt ++ " "), .{});
 
     try out.print(ansi.style.Faint ++ "(", .{});
-    inline for (std.meta.fields(options)) |f, i| {
+    inline for (std.meta.fields(options), 0..) |f, i| {
         if (i != 0) try out.print("/", .{});
         if (std.mem.eql(u8, f.name, def orelse "")) {
             try out.print(ansi.style.ResetIntensity, .{});
