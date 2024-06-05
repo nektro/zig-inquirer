@@ -5,4 +5,3 @@ license: MIT
 description: A collection of utilities for prompting information from the user on the CLI
 dependencies:
   - src: git https://github.com/nektro/zig-ansi
-  - src: git https://github.com/nektro/zig-range

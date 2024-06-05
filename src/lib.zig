@@ -1,6 +1,5 @@
 const std = @import("std");
 const ansi = @import("ansi");
-const range = @import("range").range;
 
 pub fn answer(out: anytype, comptime prompt: []const u8, comptime T: type, comptime valfmt: []const u8, value: T) !T {
     try out.print(comptime ansi.color.Fg(.Green, "? "), .{});
@@ -35,7 +34,7 @@ fn doprompt(out: anytype, in: anytype, alloc: std.mem.Allocator, default: ?[]con
 }
 
 fn clean(out: anytype, n: usize) !void {
-    for (range(n)) |_| {
+    for (0..n) |_| {
         try out.print(comptime ansi.csi.CursorUp(1), .{});
         try out.print(comptime ansi.csi.EraseInLine(0), .{});
     }
