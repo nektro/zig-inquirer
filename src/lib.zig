@@ -80,7 +80,7 @@ pub fn forString(out: anytype, in: anytype, comptime prompt: []const u8, alloc: 
     try out.print(comptime ansi.color.Fg(.Green, "? "), .{});
     try out.print(comptime ansi.color.Bold(prompt ++ " "), .{});
 
-    if (default != null) {
+    if (default != null and default.?.len > 0) {
         try out.print(ansi.style.Faint ++ "(", .{});
         try out.print("{s}", .{default.?});
         try out.print(")" ++ ansi.style.ResetIntensity ++ " ", .{});
