@@ -40,15 +40,15 @@ fn clean(out: anytype, n: usize) !void {
     }
 }
 
-pub fn forEnum(out: anytype, in: anytype, comptime prompt: []const u8, alloc: std.mem.Allocator, comptime options: type, default: ?options) !options {
-    comptime std.debug.assert(@typeInfo(options) == .Enum);
+pub fn forEnum(out: anytype, in: anytype, comptime prompt: []const u8, alloc: std.mem.Allocator, comptime E: type, default: ?E) !E {
+    comptime std.debug.assert(@typeInfo(E) == .Enum);
     const def: ?[]const u8 = if (default) |d| @tagName(d) else null;
 
     try out.print(comptime ansi.color.Fg(.Green, "? "), .{});
     try out.print(comptime ansi.color.Bold(prompt ++ " "), .{});
 
     try out.print(ansi.style.Faint ++ "(", .{});
-    inline for (std.meta.fields(options), 0..) |f, i| {
+    inline for (std.meta.fields(E), 0..) |f, i| {
         if (i != 0) try out.print("/", .{});
         if (std.mem.eql(u8, f.name, def orelse "")) {
             try out.print(ansi.style.ResetIntensity, .{});
@@ -58,14 +58,14 @@ pub fn forEnum(out: anytype, in: anytype, comptime prompt: []const u8, alloc: st
     }
     try out.print(")" ++ ansi.style.ResetIntensity ++ " ", .{});
 
-    var value: options = undefined;
+    var value: E = undefined;
     var i: usize = 0;
     while (true) {
         const p = try doprompt(out, in, alloc, def);
         defer if (!std.mem.eql(u8, p.value, def orelse "")) alloc.free(p.value);
 
         i += p.n;
-        if (std.meta.stringToEnum(options, p.value)) |cap| {
+        if (std.meta.stringToEnum(E, p.value)) |cap| {
             value = cap;
             break;
         }
