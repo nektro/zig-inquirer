@@ -2,4 +2,3 @@ MIT:
 = https://spdx.org/licenses/MIT
 - This
 - git https://github.com/nektro/zig-ansi
-- git https://github.com/nektro/zig-range
