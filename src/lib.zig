@@ -41,7 +41,7 @@ fn clean(out: anytype, n: usize) !void {
 }
 
 pub fn forEnum(out: anytype, in: anytype, comptime prompt: []const u8, alloc: std.mem.Allocator, comptime E: type, default: ?E) !E {
-    comptime std.debug.assert(@typeInfo(E) == .Enum);
+    comptime std.debug.assert(@typeInfo(E) == .@"enum");
     const def: ?[]const u8 = if (default) |d| @tagName(d) else null;
 
     try out.print(comptime ansi.color.Fg(.Green, "? "), .{});
