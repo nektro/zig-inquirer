@@ -8,4 +8,5 @@ test {
     _ = &inquirer.forEnum;
     _ = &inquirer.forString;
     _ = &inquirer.forConfirm;
+    _ = &inquirer.forStruct;
 }

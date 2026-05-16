@@ -95,6 +95,62 @@ pub fn forConfirm(out: anytype, in: anytype, comptime prompt: []const u8, alloc:
     return (try forEnum(out, in, prompt, alloc, enum { y, n }, .y)) == .y;
 }
 
+pub fn forStruct(out: anytype, in: anytype, comptime prompt: []const u8, comptime S: type, comptime name: std.meta.FieldEnum(S), items: []const S) !usize {
+    comptime std.debug.assert(@typeInfo(S) == .@"struct");
+    std.debug.assert(items.len > 0);
+
+    try out.print(comptime ansi.color.Fg(.Green, "? "), .{});
+    try out.print(comptime ansi.color.Bold(prompt ++ "\n"), .{});
+
+    const STDIN_FILENO = 0;
+    const TCSAFLUSH = 2;
+    const ECHO: std.os.linux.tcflag_t = @bitCast(std.os.linux.tc_lflag_t{ .ECHO = true });
+    const ICANON: std.os.linux.tcflag_t = @bitCast(std.os.linux.tc_lflag_t{ .ICANON = true });
+
+    var orig_termios: struct_termios = undefined;
+    _ = tcgetattr(STDIN_FILENO, &orig_termios);
+    defer _ = tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+
+    var raw_termios: struct_termios = orig_termios;
+    raw_termios.c_lflag &= ~(ECHO | ICANON);
+    _ = tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw_termios);
+
+    var r: usize = 0;
+    _ = &r;
+    while (true) {
+        for (items, 0..) |itm, i| {
+            if (i == r) {
+                try out.print(comptime ansi.color.Fg(.Cyan, "> {s}\n"), .{@field(itm, @tagName(name))});
+            } else {
+                try out.print("  {s}\n", .{@field(itm, @tagName(name))});
+            }
+        }
+        switch (@as(ansi.ascii, @enumFromInt(try in.readByte()))) {
+            .LF => {
+                break;
+            },
+            .ESC => {
+                std.debug.assert(try in.readByte() == '[');
+                switch (try in.readByte()) {
+                    'A' => { //up
+                        r = if (r > 0) r - 1 else items.len - 1;
+                    },
+                    'B' => { //down
+                        r += 1;
+                        if (r == items.len) r = 0;
+                    },
+                    else => {},
+                }
+            },
+            else => {},
+        }
+        try clean(out, items.len);
+    }
+    try clean(out, items.len + 1);
+    _ = try answer(out, prompt, []const u8, "{s}", @field(items[r], @tagName(name)));
+    return r;
+}
+
 // pub fn forNumber(comptime prompt: []const u8, alloc: *std.mem.Allocator, comptime T: type, default: ?T) !T {
 //     try out.print(comptime ansi.color.Fg(.Green, "? "), .{});
 //     try out.print(comptime ansi.color.Bold(prompt ++ " "), .{});
@@ -134,3 +190,11 @@ pub fn forConfirm(out: anytype, in: anytype, comptime prompt: []const u8, alloc:
 
 //     return value;
 // }
+
+extern fn tcgetattr(fd: c_int, termios_p: *struct_termios) c_int;
+extern fn tcsetattr(fd: c_int, optional_actions: c_int, termios_p: *const struct_termios) c_int;
+
+const impdef = @cImport({
+    @cInclude("termios.h");
+});
+const struct_termios = impdef.struct_termios;
