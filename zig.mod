@@ -5,3 +5,5 @@ license: MIT
 description: A collection of utilities for prompting information from the user on the CLI
 dependencies:
   - src: git https://github.com/nektro/zig-ansi
+root_dependencies:
+  - src: git https://github.com/nektro/zig-nfs

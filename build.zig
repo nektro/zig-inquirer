@@ -15,6 +15,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
     deps.addAllTo(exe);
+    exe.root_module.link_libc = true;
     exe.use_llvm = !disable_llvm;
     exe.use_lld = !disable_llvm;
     b.installArtifact(exe);
@@ -36,6 +37,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
     deps.addAllTo(tests);
+    tests.root_module.link_libc = true;
     tests.use_llvm = !disable_llvm;
     tests.use_lld = !disable_llvm;
     b.getInstallStep().dependOn(&tests.step);

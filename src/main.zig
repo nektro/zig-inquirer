@@ -1,16 +1,17 @@
 const std = @import("std");
 const inquirer = @import("inquirer");
+const nfs = @import("nfs");
 
 // Comparison adaptation of https://github.com/SBoudrias/Inquirer.js/blob/master/packages/inquirer/examples/pizza.js
 
 pub fn main() !void {
     std.log.info("All your codebase are belong to us.", .{});
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const alloc = &gpa.allocator;
+    var gpa = std.heap.DebugAllocator(.{}){};
+    const alloc = gpa.allocator();
 
-    const in = std.io.getStdIn().reader();
-    const out = std.io.getStdOut().writer();
+    const in = nfs.stdin();
+    const out = nfs.stdout();
 
     _ = try inquirer.forConfirm(out, in, "Is this for delivery?", alloc);
 
