@@ -48,13 +48,13 @@ pub fn forEnum(out: anytype, in: anytype, comptime prompt: []const u8, alloc: st
     try out.print(comptime ansi.color.Bold(prompt ++ " "), .{});
 
     try out.print(ansi.style.Faint ++ "(", .{});
-    inline for (std.meta.fields(E), 0..) |f, i| {
+    inline for (@typeInfo(E).@"enum".field_names, 0..) |fnm, i| {
         if (i != 0) try out.print("/", .{});
-        if (std.mem.eql(u8, f.name, def orelse "")) {
+        if (std.mem.eql(u8, fnm, def orelse "")) {
             try out.print(ansi.style.ResetIntensity, .{});
-            try out.print(comptime ansi.color.Fg(.Cyan, f.name), .{});
+            try out.print(comptime ansi.color.Fg(.Cyan, fnm), .{});
             try out.print(ansi.style.Faint, .{});
-        } else try out.print(f.name, .{});
+        } else try out.print(fnm, .{});
     }
     try out.print(")" ++ ansi.style.ResetIntensity ++ " ", .{});
 
@@ -125,7 +125,7 @@ pub fn forStruct(out: anytype, in: anytype, comptime prompt: []const u8, comptim
                 try out.print("  {s}\n", .{@field(itm, @tagName(name))});
             }
         }
-        switch (@as(ansi.ascii, @enumFromInt(try in.readByte()))) {
+        switch (@as(ansi.ascii, @fromBackingInt(@intCast(try in.readByte())))) {
             .LF => {
                 break;
             },
@@ -194,7 +194,5 @@ pub fn forStruct(out: anytype, in: anytype, comptime prompt: []const u8, comptim
 extern fn tcgetattr(fd: c_int, termios_p: *struct_termios) c_int;
 extern fn tcsetattr(fd: c_int, optional_actions: c_int, termios_p: *const struct_termios) c_int;
 
-const impdef = @cImport({
-    @cInclude("termios.h");
-});
+const impdef = @import("c");
 const struct_termios = impdef.struct_termios;
